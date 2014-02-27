@@ -1,86 +1,51 @@
 var dataApi = require('./data-api'),
-    wikipedia = require('wikipedia-js'),
     http = require('http'),
     q = require('q');
-
-var getRandomFeaturedArticleNames = function(num) {
-  var promises = [];
-
-  for(var i = 0; i < num; i++) {
-    (function() {
-      var deferred = q.defer();
-  
-      http.get("http://toolserver.org/~dapete/random/enwiki-featured.php", function(res) {
-        var location = res.headers.location; 
-  
-        location = location.match(/.+\/(.+?)$/);
-        deferred.resolve(location[1]);
-        res.socket.end(); 
-      }).on('error', function(e) {
-        deferred.reject(e);
-      });
-
-      promises.push(deferred.promise);
-    })();
-  }
-
-  return q.all(promises);
-};
 
 var client = dataApi.client("localhost", 8080, "/data-api"),
     myToken,
     myArticle;
 
+console.log("-- Authenticating...");
 client.authenticate('edmund', 'edmund').then(function(response) {
   myToken = response.token;
   console.log("-- Successfully authenticated!");
-  return getRandomFeaturedArticleNames(5);
-})
-
-.then(function(articleNames) {
-  var promises = [];
-
-  for(var i = 0; i < articleNames.length; i++) {
-    (function(title) {
-      var deferred = q.defer();
-      var options = { query: title, format: "html", summaryOnly: false };
-
-      wikipedia.searchArticle(options, function(err, htmlText) {
-        var payload = {
-          contentData: {
-	    _type: 'example.data.act.StandardArticleBean',
-            body: htmlText,
-	    resources: [],
-	    author: 'Wikipedia',
-	    name: unescape(title).replace(/_/g, " ")
-          }
-        };
-
-        client.create(myToken, 'act', payload).then(function(response) {
-	  console.log("-- Created article "+ response.id);
-          deferred.resolve();
-        }, function(error) {
-          deferred.reject(error);
-        });
-      });
-
-      promises.push(deferred.promise);
-    })(articleNames[i]);
-  }
-
-  return q.all(promises);
-})
-
-.then(function(results) { 
-  return client.invalidateToken(myToken);
-}, function(error) {
-  console.log(error);
 })
 
 .then(function() {
-  console.log("-- Deleted token!");
+  console.log("-- Reading content 1.229...");
+  return client.read(myToken, "1.229", "act");
 })
 
-.then(undefined, function(error) {
+.then(function(response) {
+  console.log('-- Successfully read content! '+ response.id +'.'+ response.version);
+
+  response.contentData.name = 'An updated article '+ new Date().getTime();
+
+  console.log("-- Updating content...");
+  return q.all([q.when(response), client.update(myToken, response, 'act')]);
+})
+
+.spread(function(content, response) {
+  console.log('-- Successfully updated content! '+ response.id +'.'+ response.version);
+
+  content.contentData.name = 'A created article '+ new Date().getTime();
+
+  console.log("-- Creating content...");
+  return client.create(myToken, content, 'act');
+})
+
+.then(function(response) {
+  console.log('-- Successfully created content! '+ response.id +'.'+ response.version);
+
+  console.log('-- Searching for content...');
+  return client.search(myToken, 'public', 'text:An updated article', 'act');
+})
+
+.then(function(response) {
+  console.log('-- Successfully searched for content!', response);
+})
+
+.then(null, function(error) {
   console.error('ERROR: '+ error);
 });
