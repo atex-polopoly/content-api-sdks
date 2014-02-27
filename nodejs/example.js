@@ -43,7 +43,7 @@ client.authenticate('edmund', 'edmund').then(function(response) {
 })
 
 .then(function(response) {
-  console.log('-- Successfully searched for content!', response);
+  console.log('-- Successfully searched for content! Got '+ response.response.numFound +' hits.');
 })
 
 .then(null, function(error) {

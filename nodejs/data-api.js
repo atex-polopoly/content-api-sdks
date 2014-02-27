@@ -38,31 +38,25 @@ var DataApiClient = function(host, port, path) {
       });
 
       res.on('end', function() {
-        var jsonData = JSON.parse(responseData);
-
-        if(_.contains([400, 401, 403, 404, 500], statusCode)) {
-          deferred.reject('HTTP '+ statusCode +': '+ (jsonData.message || jsonData.error.msg));
+        if(statusCode === 204) {
+          deferred.resolve();
         }
 
-        if(statusCode === 401) {
-          deferred.reject('401 Unauthorized');
-        } else if(statusCode === 403) {
-          deferred.reject('403 Forbidden');
-        } else if(statusCode === 400) {
-          deferred.reject('400 Bad Request');
-        } else if(statusCode === 500) {
-          deferred.reject('500 Internal Server Error');
-        } else if(statusCode === 303) {
-          makeRequest(method, jsonData.location, token, payload, customHeaders).then(function(response) {
-            deferred.resolve(response);
-          }, function(error ) {
-            deferred.reject(error);
-          });
-        } else {
-          if(responseData && responseData !== '') {
-            deferred.resolve(jsonData);
+        else {
+          var jsonData = JSON.parse(responseData);
+
+          if(_.contains([400, 401, 403, 404, 500], statusCode)) {
+            deferred.reject('HTTP '+ statusCode +': '+ (jsonData.message || jsonData.error.msg));
+          }
+
+          if(statusCode === 303) {
+            makeRequest(method, jsonData.location, token, payload, customHeaders).then(function(response) {
+              deferred.resolve(response);
+            }, function(error ) {
+              deferred.reject(error);
+            });
           } else {
-            deferred.resolve();
+            deferred.resolve(jsonData);
           }
         }
       });
