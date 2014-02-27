@@ -7,10 +7,6 @@ import re
 
 class Client:
 
-    _host = ""
-    _port = 0
-    _path = ""
-
     _auth = "/ws/security/token"
     _readContentId = "/ws/content/contentid/"
     _readExternalId = "/ws/content/externalid/"
@@ -48,13 +44,11 @@ class Client:
           if response.status in [401, 403, 404, 400, 500]:
               raise Exception("HTTP {0}: {1}".format(response.status, jsonData["message"]))
           elif response.status == 303:
-              return self._makeRequest(
-                  method,
-                  jsonData["location"],
-                  token,
-                  payload,
-                  customHeaders
-              )
+              return self._makeRequest(method,
+                                       jsonData["location"],
+                                       token,
+                                       payload,
+                                       customHeaders)
           else:
               return jsonData
 
@@ -67,11 +61,8 @@ class Client:
         return self._makeRequest(
             "POST",
             self._path+self._auth,
-            None,
-            payload
+            payload=payload
         )
-
-        return data
 
     def invalidateToken(self, token):
         return self._makeRequest(

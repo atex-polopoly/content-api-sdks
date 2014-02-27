@@ -2,6 +2,7 @@
 
 import dataapi
 import time
+import sys
 
 client = dataapi.Client("localhost", 8080, "/data-api")
 token = None
@@ -22,6 +23,7 @@ if token:
         print "-- Successfully read content! {0}.{1}".format(content["id"], content["version"])
     except Exception, Argument:
         print "-- Failed to read content: {0}".format(e)
+        sys.exit(1)
 
     if content:
         content["contentData"]["name"] = "An updated article {0}".format(int(time.time()))
@@ -32,6 +34,7 @@ if token:
             print "-- Successfully updated content! {0}.{1}".format(response["id"], response["version"])
         except Exception as e:
             print "-- Failed to update content: {0}".format(e)
+            sys.exit(1)
 
         try:
             print "-- Creating content..."
@@ -40,6 +43,7 @@ if token:
             print "-- Successfully created content! {0}.{1}".format(response["id"], response["version"])
         except Exception as e:
             print "-- Failed to create content: {0}".format(e)
+            sys.exit(1)
 
         try:
             print "-- Searching for content..."
@@ -47,6 +51,7 @@ if token:
             print "-- Successfully searched for content! Got {0} hits.".format(response["response"]["numFound"])
         except Exception as e:
             print "-- Failed to search for content: {0}".format(e)
+            sys.exit(1)
 
         try:
             print "-- Invalidating token..."
@@ -54,3 +59,4 @@ if token:
             print "-- Successfully invalidated token!"
         except Exception as e:
             print "-- Failed to invalidate token: {0}".format(e)
+            sys.exit(1)
