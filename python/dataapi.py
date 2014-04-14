@@ -38,10 +38,10 @@ class Client:
         response = connection.getresponse()
 
         if response.status == 204:
-          return
+          return None, response.getheader('ETag')
         else:
           jsonData = json.loads(response.read())
-          if response.status in [401, 403, 404, 400, 500]:
+          if response.status in [401, 403, 404, 400, 409, 500]:
               raise Exception("HTTP {0}: {1}".format(response.status, jsonData["message"]))
           elif response.status == 303:
               return self._makeRequest(method,
@@ -50,7 +50,7 @@ class Client:
                                        payload,
                                        customHeaders)
           else:
-              return jsonData
+              return jsonData, response.getheader('ETag')
 
     def authenticate(self, username, password):
         payload = {
@@ -62,14 +62,14 @@ class Client:
             "POST",
             self._path+self._auth,
             payload=payload
-        )
+        )[0]
 
     def invalidateToken(self, token):
         return self._makeRequest(
             "DELETE",
             self._path+self._auth,
             token
-        )
+        )[0]
 
     def search(self, token, index, searchExpression, variant=None, rows=None):
         path = "{0}{1}/{2}/select?q={3}&wt=json".format(
@@ -86,12 +86,17 @@ class Client:
             "GET",
             path,
             token
-        )
+        )[0]
 
     def create(self, token, payload, variant):
+        path = self._path+self._create
+
+        if variant:
+            path += "?variant={0}".format(variant)
+
         return self._makeRequest(
             "POST",
-            self._path+self._create+"?variant={0}".format(variant),
+            path,
             token,
             payload
         )
@@ -102,7 +107,10 @@ class Client:
             path = self._path+self._readContentId
         else:
             path = self._path+self._readExternalId
-        path += "{0}?variant={1}".format(contentId, variant)
+
+        path += contentId
+        if variant:
+            path += "?variant={0}".format(variant)
 
         return self._makeRequest(
             "GET",
@@ -110,18 +118,21 @@ class Client:
             token
         )
 
-    def update(self, token, payload, variant):
+    def update(self, token, payload, etag, variant):
         path = ""
         if re.search("\\d+\\.\\d+", payload["id"]) != None:
             path = self._path+self._readContentId
         else:
             path = self._path+self._readExternalId
-        path += "{0}?variant={1}".format(payload["id"], variant)
+
+        path += payload["id"]
+        if variant:
+            path += "?variant={0}".format(variant)
 
         return self._makeRequest(
             "PUT",
             path,
             token,
             payload,
-            { "If-Match": "{0}.{1}".format(payload["id"], payload["version"]) }
+            { "If-Match": "{0}".format(etag) }
         )
