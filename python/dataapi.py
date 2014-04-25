@@ -7,11 +7,11 @@ import re
 
 class Client:
 
-    _auth = "/ws/security/token"
-    _readContentId = "/ws/content/contentid/"
-    _readExternalId = "/ws/content/externalid/"
-    _create = "/ws/content"
-    _search = "/ws/search"
+    _auth = "/security/token"
+    _readContentId = "/content/contentid/"
+    _readExternalId = "/content/externalid/"
+    _create = "/content"
+    _search = "/search"
 
     def __init__(self, host, port, path):
         self._host = host

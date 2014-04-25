@@ -4,7 +4,7 @@ import dataapi
 import time
 import sys
 
-client = dataapi.Client("localhost", 8080, "/data-api")
+client = dataapi.Client("localhost", 8080, "/onecms")
 token = None
 try:
     print "-- Authenticating..."
