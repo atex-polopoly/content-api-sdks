@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 )
 
 type Token struct {
@@ -17,24 +18,18 @@ type Token struct {
 }
 
 type Content struct {
-	Id          string                 `json:"id"`
-	Version     string                 `json:"version"`
-	Meta        MetaType               `json:"meta"`
+	Id          string                 `json:"id,omitempty"`
+	Version     string                 `json:"version,omitempty"`
+	Meta        map[string]interface{} `json:"meta,omitempty"`
 	ContentData map[string]interface{} `json:"contentData"`
 }
 
-type MetaType struct {
-	CreationTime     string `json:"originalCreationTime"`
-	ModificationTime string `json:"modificationTime"`
-	LatestVersion    string `json:"latestVersion"`
-}
-
 const (
-	PATH_AUTH            = "/ws/security/token"
-	PATH_CREATE          = "/ws/content/"
-	PATH_READ_CONTENTID  = "/ws/content/contentid/"
-	PATH_READ_EXTERNALID = "/ws/content/externalid/"
-	PATH_SEARCH          = "/ws/search/"
+	PATH_AUTH            = "/security/token"
+	PATH_CREATE          = "/content/"
+	PATH_READ_CONTENTID  = "/content/contentid/"
+	PATH_READ_EXTERNALID = "/content/externalid/"
+	PATH_SEARCH          = "/search/"
 )
 
 type DataAPI struct {
@@ -45,23 +40,27 @@ type DataAPI struct {
 
 func getContentIdPath(contentId, variant string) (path string) {
 	isContentId, _ := regexp.Match("\\d+\\.\\d+", []byte(contentId))
-
-	if isContentId {
-		return PATH_READ_CONTENTID + contentId + "?variant=" + variant
+	variantQuery := ""
+	if variant != "" {
+		variantQuery = "?variant=" + variant
 	}
 
-	return PATH_READ_EXTERNALID + contentId + "?variant=" + variant
+	if isContentId {
+		return PATH_READ_CONTENTID + contentId + variantQuery
+	}
+
+	return PATH_READ_EXTERNALID + contentId + variantQuery
 }
 func keepHeaderOnRedirect(req *http.Request, via []*http.Request) error {
 	req.Header = via[0].Header
 	return nil
 }
-func makeRequest(method, url string, data []byte, token *Token, extraHeaders *map[string]string) (body []byte, err error) {
+func makeRequest(method, url string, data []byte, token *Token, extraHeaders *map[string]string) (body []byte, err error, etag string) {
 	client := &http.Client{CheckRedirect: keepHeaderOnRedirect}
 
 	req, err := http.NewRequest(method, url, bytes.NewReader(data))
 	if err != nil {
-		return nil, err
+		return nil, err, ""
 	}
 
 	req.Header.Add("Content-Type", "application/json")
@@ -76,10 +75,13 @@ func makeRequest(method, url string, data []byte, token *Token, extraHeaders *ma
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, err, ""
 	}
-
+	etag = resp.Header.Get("ETag")
 	switch resp.StatusCode {
+	case 204:
+		body = []byte("")
+		return
 	case 401:
 		err = errors.New("401 Unauthorized")
 	case 403:
@@ -93,12 +95,12 @@ func makeRequest(method, url string, data []byte, token *Token, extraHeaders *ma
 	}
 	if err != nil {
 		b, _ := ioutil.ReadAll(resp.Body)
-		return nil, errors.New(err.Error() + string(b))
+		return nil, errors.New(err.Error() + string(b)), etag
 	}
 
 	body, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, err, etag
 	}
 
 	return
@@ -118,7 +120,7 @@ func (dApi DataAPI) Authenticate(username, password string) (token Token, err er
 		return
 	}
 
-	resp, err := makeRequest("POST", dApi.getUrl(PATH_AUTH), data, nil, nil)
+	resp, err, _ := makeRequest("POST", dApi.getUrl(PATH_AUTH), data, nil, nil)
 	if err != nil {
 		return
 	}
@@ -131,22 +133,24 @@ func (dApi DataAPI) Authenticate(username, password string) (token Token, err er
 	Invalidates a token. After this command is run, the token can no long longer be used to authenticate with the other API functions.
 */
 func (dApi DataAPI) InvalidateToken(token Token) (err error) {
-	_, err = makeRequest("DELETE", dApi.getUrl(PATH_AUTH), nil, &token, nil)
+	_, err, _ = makeRequest("DELETE", dApi.getUrl(PATH_AUTH), nil, &token, nil)
 	return
 }
 
 /*
 	Retrieves a content from the server.
 */
-func (dApi DataAPI) Read(token Token, contentId, variant string) (content Content, err error) {
-	path := getContentIdPath(contentId, variant)
+func (dApi DataAPI) Read(token Token, contentId, variant string) (content Content, err error, etag string) {
+	path := getContentIdPath(contentId, variant) + "?format=json+allTypes"
 
-	resp, err := makeRequest("GET", dApi.getUrl(path), nil, &token, nil)
+	resp, err, etag := makeRequest("GET", dApi.getUrl(path), nil, &token, nil)
 	if err != nil {
 		return
 	}
-
-	err = json.Unmarshal(resp, &content)
+	//fmt.Println(string(resp))
+	d := json.NewDecoder(strings.NewReader(string(resp)))
+	d.UseNumber()
+	err = d.Decode(&content)
 	if err != nil {
 		return
 	}
@@ -159,7 +163,7 @@ func (dApi DataAPI) Read(token Token, contentId, variant string) (content Conten
 */
 func (dApi DataAPI) Create(token Token, variant string, data []byte) (content Content, err error) {
 	path := PATH_CREATE + "?variant=" + variant
-	resp, err := makeRequest("POST", dApi.getUrl(path), data, &token, nil)
+	resp, err, _ := makeRequest("POST", dApi.getUrl(path), data, &token, nil)
 	if err != nil {
 		return
 	}
@@ -175,14 +179,19 @@ func (dApi DataAPI) Create(token Token, variant string, data []byte) (content Co
 /*
 	Updates a content.
 */
-func (dApi DataAPI) Update(token Token, variant string, content Content) (respContent Content, err error) {
+func (dApi DataAPI) Update(token Token, variant string, content Content, etag string) (respContent Content, err error) {
 	path := getContentIdPath(content.Id, variant)
+	content.Id = ""
+	content.Meta = nil
+	content.Version = ""
+
 	jsonData, err := json.Marshal(content)
 	if err != nil {
 		return
 	}
-
-	resp, err := makeRequest("PUT", dApi.getUrl(path), jsonData, &token, &map[string]string{"If-Match": content.Id + "." + content.Version})
+	//prettyPrintData, _ := json.MarshalIndent(content, "", "    ")
+	//fmt.Println("PUT", dApi.getUrl(path), string(prettyPrintData))
+	resp, err, _ := makeRequest("PUT", dApi.getUrl(path), jsonData, &token, &map[string]string{"If-Match": etag})
 	if err != nil {
 		return
 	}
@@ -198,7 +207,7 @@ func (dApi DataAPI) Update(token Token, variant string, content Content) (respCo
 /*
 	Searches the SOLR database
 */
-func (dApi DataAPI) Search(token Token, variant, index, expression string, maxResults int) (resp []byte, err error) {
+func (dApi DataAPI) Search(token Token, variant, index, expression string, maxResults int) (resp map[string]interface{}, err error, etag string) {
 	path := PATH_SEARCH + url.QueryEscape(index) + "/select?q=" + url.QueryEscape(expression) + "&wt=json"
 
 	if maxResults > 0 {
@@ -209,5 +218,17 @@ func (dApi DataAPI) Search(token Token, variant, index, expression string, maxRe
 		path += "&variant=" + url.QueryEscape(variant)
 	}
 
-	return makeRequest("GET", dApi.getUrl(path), nil, &token, nil)
+	req, err, _ := makeRequest("GET", dApi.getUrl(path), nil, &token, nil)
+	if err != nil {
+		return
+	}
+
+	d := json.NewDecoder(strings.NewReader(string(req)))
+	d.UseNumber()
+	err = d.Decode(&resp)
+	if err != nil {
+		return
+	}
+
+	return
 }
