@@ -140,7 +140,7 @@ func (dApi DataAPI) InvalidateToken(token Token) (err error) {
 /*
 	Retrieves a content from the server.
 */
-func (dApi DataAPI) Read(token Token, contentId, variant string) (content Content, err error, etag string) {
+func (dApi DataAPI) Read(token Token, contentId, variant string) (content map[string]interface{}, err error, etag string) {
 	path := getContentIdPath(contentId, variant) + "?format=json+allTypes"
 
 	resp, err, etag := makeRequest("GET", dApi.getUrl(path), nil, &token, nil)
@@ -161,7 +161,7 @@ func (dApi DataAPI) Read(token Token, contentId, variant string) (content Conten
 /*
 	Creates a content with the data sent in. If no Data is sent, a empty content will be created.
 */
-func (dApi DataAPI) Create(token Token, variant string, data []byte) (content Content, err error) {
+func (dApi DataAPI) Create(token Token, variant string, data []byte) (content map[string]interface{}, err error) {
 	path := PATH_CREATE + "?variant=" + variant
 	resp, err, _ := makeRequest("POST", dApi.getUrl(path), data, &token, nil)
 	if err != nil {
@@ -179,11 +179,12 @@ func (dApi DataAPI) Create(token Token, variant string, data []byte) (content Co
 /*
 	Updates a content.
 */
-func (dApi DataAPI) Update(token Token, variant string, content Content, etag string) (respContent Content, err error) {
-	path := getContentIdPath(content.Id, variant)
-	content.Id = ""
-	content.Meta = nil
-	content.Version = ""
+func (dApi DataAPI) Update(token Token, variant string, content map[string]interface{}, etag string) (respContent map[string]interface{}, err error) {
+	path := getContentIdPath(content["id"].(string), variant)
+
+	delete(content, "id")
+	delete(content, "meta")
+	delete(content, "version")
 
 	jsonData, err := json.Marshal(content)
 	if err != nil {
