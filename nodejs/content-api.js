@@ -230,5 +230,5 @@ var ContentApiClientFactory = function(host, port, path) {
 };
 
 module.exports = {
-  client: ContentApiClient
+  clientFactory: ContentApiClientFactory
 };

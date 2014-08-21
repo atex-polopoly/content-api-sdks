@@ -1,6 +1,6 @@
 'use strict';
 
-var contentApi = require('./content-api-client'),
+var contentApi = require('./content-api'),
     wikipedia = require('wikipedia-js'),
     http = require('http'),
     q = require('q'),
@@ -30,7 +30,7 @@ var getRandomFeaturedArticleNames = function(num) {
   return q.all(promises);
 };
 
-var client = contentApi.client("localhost", 8080, "/onecms");
+var client = contentApi.clientFactory("localhost", 8080, "/onecms");
 var myToken;
 
 client.authenticate('edmund', 'edmund').then(function(response) {

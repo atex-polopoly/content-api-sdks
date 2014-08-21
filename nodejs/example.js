@@ -1,10 +1,10 @@
 'use strict';
 
-var contentApi = require('./content-api-client'),
+var contentApi = require('./content-api'),
     http = require('http'),
     q = require('q');
 
-var client = contentApi.client("localhost", 8080, "/onecms");
+var client = contentApi.clientFactory("localhost", 8080, "/onecms");
 var myToken;
 
 console.log("-- Authenticating...");
