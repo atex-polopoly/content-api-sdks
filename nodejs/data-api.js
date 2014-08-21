@@ -7,11 +7,11 @@ var http = require('http'),
 var DataApiClient = function(host, port, path) {
 
   var urls = {
-    auth: path +'/ws/security/token',
-    readContentId: path+'/ws/content/contentid/',
-    readExternalId: path+'/ws/content/externalid/',
-    create: path+'/ws/content',
-    search: path+'/ws/search'
+    auth: path +'/security/token',
+    readContentId: path+'/content/contentid/',
+    readExternalId: path+'/content/externalid/',
+    create: path+'/content',
+    search: path+'/search'
   };
 
   var makeRequest = function(method, path, token, payload, customHeaders) {
@@ -30,14 +30,15 @@ var DataApiClient = function(host, port, path) {
       params.headers['X-Auth-Token'] = token;
     }
 
-    var req = http.request(params, function(res) {
-      var statusCode = res.statusCode;
+    var req = http.request(params, function(incomingMessage) {
+      var statusCode = incomingMessage.statusCode;
+      var etag = incomingMessage.headers.etag;
 
-      res.on('data', function(chunk) {
+      incomingMessage.on('data', function(chunk) {
         responseData += chunk;
       });
 
-      res.on('end', function() {
+      incomingMessage.on('end', function() {
         if(statusCode === 204) {
           deferred.resolve();
         }
@@ -45,7 +46,7 @@ var DataApiClient = function(host, port, path) {
         else {
           var jsonData = JSON.parse(responseData);
 
-          if(_.contains([400, 401, 403, 404, 500], statusCode)) {
+          if(new String(statusCode).indexOf(4) === 0 || new String(statusCode).indexOf(5) === 0) {
             deferred.reject('HTTP '+ statusCode +': '+ (jsonData.message || jsonData.error.msg));
           }
 
@@ -56,7 +57,7 @@ var DataApiClient = function(host, port, path) {
               deferred.reject(error);
             });
           } else {
-            deferred.resolve(jsonData);
+            deferred.resolve({ etag: etag, responseData: jsonData });
           }
         }
       });
@@ -111,11 +112,11 @@ var DataApiClient = function(host, port, path) {
       return makeRequest('GET', path, token);
     },
 
-    update: function(token, payload, variant) {
+    update: function(token, payload, etag, variant) {
       var path = (/\d+\.\d+/.test(payload.id) ? urls.readContentId : urls.readExternalId) + payload.id;
       if(variant) path += "?variant="+ variant;
 
-      return makeRequest('PUT', path, token, payload, { 'If-Match': payload.id +'.'+ payload.version });
+      return makeRequest('PUT', path, token, payload, { 'If-Match': etag });
     }
   };
 };

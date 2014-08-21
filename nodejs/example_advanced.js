@@ -1,7 +1,9 @@
 var dataApi = require('./data-api'),
     wikipedia = require('wikipedia-js'),
     http = require('http'),
-    q = require('q');
+    q = require('q'),
+    querystring = require('querystring');
+
 
 var getRandomFeaturedArticleNames = function(num) {
   var promises = [];
@@ -10,7 +12,7 @@ var getRandomFeaturedArticleNames = function(num) {
     (function() {
       var deferred = q.defer();
 
-      http.get("http://toolserver.org/~dapete/random/enwiki-featured.php", function(res) {
+      http.get("http://tools.wmflabs.org/random-featured/redirect/enwiki", function(res) {
         var location = res.headers.location;
 
         location = location.match(/.+\/(.+?)$/);
@@ -27,12 +29,12 @@ var getRandomFeaturedArticleNames = function(num) {
   return q.all(promises);
 };
 
-var client = dataApi.client("localhost", 8080, "/data-api"),
+var client = dataApi.client("localhost", 8080, "/onecms"),
     myToken,
     myArticle;
 
 client.authenticate('edmund', 'edmund').then(function(response) {
-  myToken = response.token;
+  myToken = response.responseData.token;
   console.log("-- Successfully authenticated!");
   return getRandomFeaturedArticleNames(5);
 })
@@ -42,22 +44,21 @@ client.authenticate('edmund', 'edmund').then(function(response) {
 
   for(var i = 0; i < articleNames.length; i++) {
     (function(title) {
+      title = querystring.unescape(title).replace(/_/g, " ");
       var deferred = q.defer();
       var options = { query: title, format: "html", summaryOnly: false };
 
       wikipedia.searchArticle(options, function(err, htmlText) {
         var payload = {
           contentData: {
-            _type: 'example.data.act.StandardArticleBean',
+            _type: 'com.atex.standard.article.ArticleBean',
             body: htmlText,
-            resources: [],
-            author: 'Wikipedia',
-            name: unescape(title).replace(/_/g, " ")
+            title: title
           }
         };
 
-        client.create(myToken, payload, 'act').then(function(response) {
-          console.log("-- Created article "+ response.id);
+        client.create(myToken, payload).then(function(response) {
+          console.log("-- Created article "+ response.responseData.id);
           deferred.resolve();
         }, function(error) {
           deferred.reject(error);

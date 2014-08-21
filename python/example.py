@@ -19,8 +19,8 @@ if token:
     etag = None
 
     try:
-        print "-- Reading content 1.229..."
-        content, etag = client.read(token, "1.229", None)
+        print "-- Reading content 1.116..."
+        content, etag = client.read(token, "1.116", None)
         print "-- Successfully read content! {0}.{1}".format(content["id"], content["version"])
     except Exception, Argument:
         print "-- Failed to read content: {0}".format(Argument)
@@ -28,6 +28,8 @@ if token:
 
     if content:
         content["contentData"]["title"] = "An updated article {0}".format(int(time.time()))
+
+        # this cannot be included when creating/updating content
         del content["meta"]
 
         try:
@@ -49,7 +51,7 @@ if token:
 
         try:
             print "-- Searching for content..."
-            response = client.search(token, "public", "text:An updated article")
+            response = client.search(token, "public", "text:science")
             print "-- Successfully searched for content! Got {0} hits.".format(response["response"]["numFound"])
         except Exception as e:
             print "-- Failed to search for content: {0}".format(e)
