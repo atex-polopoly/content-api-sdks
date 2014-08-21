@@ -43,8 +43,8 @@ func exampleCreate(api dataapi.DataAPI, token dataapi.Token) string {
 		return ""
 	}
 
-	fmt.Println("Success! A content is created with id:", content.Id, "\n")
-	return content.Id
+	fmt.Println("Success! A content is created with id:", content["id"], "\n")
+	return content["id"].(string)
 }
 
 func exampleRetrieve(api dataapi.DataAPI, token dataapi.Token) {
@@ -55,22 +55,21 @@ func exampleRetrieve(api dataapi.DataAPI, token dataapi.Token) {
 		return
 	}
 
-	fmt.Println("Success! Retrieved content ", "18.100", "with this data:\n", toPrettyPrint(newContent.ContentData), "\n")
+	fmt.Println("Success! Retrieved content ", "18.100", "with this data:\n", toPrettyPrint(newContent), "\n")
 }
 
 func exampleUpdate(api dataapi.DataAPI, token dataapi.Token, id string) {
 	fmt.Println("--- Update a Content ---")
 	contentToUpdate, _, etag := api.Read(token, id, "")
-	contentToUpdate.ContentData["body"] = "This is my new body"
+	contentToUpdate["contentData"].(map[string]interface{})["body"] = "This is my new body"
 	updatedContent, err := api.Update(token, "", contentToUpdate, etag)
 	if err != nil {
 		fmt.Printf("ERROR: %v\n", err)
 		return
 	}
-	updatedContent = updatedContent
-	newUpdatedContent, _, etag := api.Read(token, updatedContent.Id, "") //Read again!
+	newUpdatedContent, _, etag := api.Read(token, updatedContent["id"].(string), "") //Read again!
 
-	fmt.Println("Success! Updated content", updatedContent.Id, "and it now contains this data:\n", toPrettyPrint(newUpdatedContent.ContentData), "\n")
+	fmt.Println("Success! Updated content", updatedContent["id"], "and it now contains this data:\n", toPrettyPrint(newUpdatedContent), "\n")
 }
 
 func exampleSearch(api dataapi.DataAPI, token dataapi.Token) {
@@ -95,6 +94,7 @@ func exampleInvalidate(api dataapi.DataAPI, token dataapi.Token) {
 
 	fmt.Println("Success! Token invalidated.")
 }
+
 func main() {
 	api := dataapi.DataAPI{
 		Host: "localhost",
@@ -104,7 +104,6 @@ func main() {
 
 	token := exampleAuth(api)
 	id := exampleCreate(api, token)
-
 	exampleRetrieve(api, token)
 	exampleUpdate(api, token, id)
 	exampleSearch(api, token)
