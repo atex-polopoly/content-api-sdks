@@ -4,7 +4,7 @@ import contentapi
 import time
 import sys
 
-client = contentapi.Client("localhost", 8080, "/onecms")
+client = contentapi.ContentApiClient("localhost", 8080, "/onecms")
 token = None
 try:
     print "-- Authenticating..."
@@ -34,7 +34,7 @@ if token:
 
         try:
             print "-- Updating content..."
-            response, etag = client.update(token, content, etag, None)
+            response, etag = client.update(token, content, etag)
             print "-- Successfully updated content! {0}.{1}".format(response["id"], response["version"])
         except Exception as e:
             print "-- Failed to update content: {0}".format(e)
@@ -43,7 +43,7 @@ if token:
         try:
             print "-- Creating content..."
             content["contentData"]["title"] = "A created article {0}".format(int(time.time()))
-            response, etag = client.create(token, content, None)
+            response, etag = client.create(token, content)
             print "-- Successfully created content! {0}.{1}".format(response["id"], response["version"])
         except Exception as e:
             print "-- Failed to create content: {0}".format(e)

@@ -1,4 +1,6 @@
-var contentApi = require('./content-api'),
+'use strict';
+
+var contentApi = require('./content-api-client'),
     http = require('http'),
     q = require('q');
 

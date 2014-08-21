@@ -5,7 +5,19 @@ import httplib
 import json
 import re
 
-class Client:
+class ContentApiClient:
+    """
+    This is a stateless class which provides methods for communicating with
+    the Content API present in a Polopoly 10.10 or 10.10.1 installation. It is
+    not compatible with Polopoly versions earlier than 10.10.
+
+    All methods, if the operation was successful, will generally return the
+    response body as returned from the server.
+
+    An operation will be deemed unsuccessful if the server responds with an
+    HTTP status code of 4XX or 5XX. In that case, the method will raise an
+    exception containing error details.
+    """
 
     _auth = "/security/token"
     _readContentId = "/content/contentid/"
@@ -14,6 +26,19 @@ class Client:
     _search = "/search"
 
     def __init__(self, host, port, path):
+        """
+        Constructs a new instance of ContentApiClient.
+
+        Args:
+            host (string): host to where the Content API is hosted
+            port (integer): port where the Content API is listening
+            path (string): path to the Content API relative to the host
+                (should include leading slash)
+
+        Example:
+            ContentApiClient("localhost", 8080, "/onecms")
+        """
+
         self._host = host
         self._port = port
         self._path = path
@@ -53,6 +78,19 @@ class Client:
               return jsonData, response.getheader('ETag')
 
     def authenticate(self, username, password):
+        """
+        Performs authentication using the given username and password. The token
+        contained by the response must be used in further communication with the
+        Content API.
+
+        Args:
+            username (string)
+            password (string)
+
+        Returns:
+            The payload as returned from the server
+        """
+
         payload = {
             "username": username,
             "password": password
@@ -65,6 +103,17 @@ class Client:
         )[0]
 
     def invalidateToken(self, token):
+        """
+        Invalidates a token. After calling this method, the token can no longer
+        be used in communication with the Content API.
+
+        Args:
+            token (string): the token to invalidate
+
+        Returns:
+            The payload as returned from the server
+        """
+
         return self._makeRequest(
             "DELETE",
             self._path+self._auth,
@@ -72,6 +121,21 @@ class Client:
         )[0]
 
     def search(self, token, index, searchExpression, variant=None, rows=None):
+        """
+        Performs a search in the Content API.
+
+        Args:
+            token (string): a previously acquired authentication token
+            index (string): an index name for which to perform the search in
+            searchExpression (string): a Solr search expression
+            [variant] (string): if provided, data from Polopoly with be inlined
+                using this variant
+            [rows] (integer): number of rows included in the result
+
+        Returns:
+            The payload as returned from the server
+        """
+
         path = "{0}{1}/{2}/select?q={3}&wt=json".format(
             self._path,
             self._search,
@@ -88,20 +152,38 @@ class Client:
             token
         )[0]
 
-    def create(self, token, payload, variant):
-        path = self._path+self._create
+    def create(self, token, payload):
+        """
+        Creates a content.
 
-        if variant:
-            path += "?variant={0}".format(variant)
+        Args:
+            token (string): a previously acquired authentication token
+            payload (dict): the payload
+
+        Returns:
+            The payload as returned from the server
+        """
 
         return self._makeRequest(
             "POST",
-            path,
+            self._path+self._create,
             token,
             payload
         )
 
     def read(self, token, contentId, variant):
+        """
+        Reads a content.
+
+        Args:
+            token (string): a previously acquired authentication token
+            contentId (string): a contentId (e.g. '1.200' or 'PolopolyPost.d')
+            [variant] (string): a variant to use when reading the content
+
+        Returns:
+            The payload as returned from the server
+        """
+
         path = ""
         if re.search("\\d+\\.\\d+", contentId) != None:
             path = self._path+self._readContentId
@@ -118,7 +200,20 @@ class Client:
             token
         )
 
-    def update(self, token, payload, etag, variant):
+    def update(self, token, payload, etag):
+        """
+        Updates a content. Which content to update is derived from the id
+        property in the payload.
+
+        Args:
+            token (string): a previously acquired authentication token
+            payload (dict): the payload
+            etag (string): the etag receieved when previously reading the content
+
+        Returns:
+            The payload as returned from the server
+        """
+
         path = ""
         if re.search("\\d+\\.\\d+", payload["id"]) != None:
             path = self._path+self._readContentId
@@ -126,8 +221,6 @@ class Client:
             path = self._path+self._readExternalId
 
         path += payload["id"]
-        if variant:
-            path += "?variant={0}".format(variant)
 
         return self._makeRequest(
             "PUT",

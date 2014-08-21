@@ -1,9 +1,10 @@
-var contentApi = require('./content-api'),
+'use strict';
+
+var contentApi = require('./content-api-client'),
     wikipedia = require('wikipedia-js'),
     http = require('http'),
     q = require('q'),
     querystring = require('querystring');
-
 
 var getRandomFeaturedArticleNames = function(num) {
   var promises = [];
