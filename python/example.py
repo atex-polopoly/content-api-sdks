@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
-import dataapi
+import contentapi
 import time
 import sys
 
-client = dataapi.Client("localhost", 8080, "/onecms")
+client = contentapi.Client("localhost", 8080, "/onecms")
 token = None
 try:
     print "-- Authenticating..."

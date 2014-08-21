@@ -1,4 +1,4 @@
-var dataApi = require('./data-api'),
+var contentApi = require('./content-api'),
     wikipedia = require('wikipedia-js'),
     http = require('http'),
     q = require('q'),
@@ -29,9 +29,8 @@ var getRandomFeaturedArticleNames = function(num) {
   return q.all(promises);
 };
 
-var client = dataApi.client("localhost", 8080, "/onecms"),
-    myToken,
-    myArticle;
+var client = contentApi.client("localhost", 8080, "/onecms");
+var myToken;
 
 client.authenticate('edmund', 'edmund').then(function(response) {
   myToken = response.responseData.token;

@@ -1,8 +1,8 @@
-var dataApi = require('./data-api'),
+var contentApi = require('./content-api'),
     http = require('http'),
     q = require('q');
 
-var client = dataApi.client("localhost", 8080, "/onecms");
+var client = contentApi.client("localhost", 8080, "/onecms");
 var myToken;
 
 console.log("-- Authenticating...");

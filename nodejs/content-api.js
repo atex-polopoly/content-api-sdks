@@ -4,7 +4,7 @@ var http = require('http'),
     q = require('q'),
     _ = require('underscore');
 
-var DataApiClient = function(host, port, path) {
+var ContentApiClient = function(host, port, path) {
 
   var urls = {
     auth: path +'/security/token',
@@ -122,5 +122,5 @@ var DataApiClient = function(host, port, path) {
 };
 
 module.exports = {
-  client: DataApiClient
+  client: ContentApiClient
 };

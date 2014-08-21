@@ -41,7 +41,7 @@ class Client:
           return None, response.getheader('ETag')
         else:
           jsonData = json.loads(response.read())
-          if str(response.status).startswith('4') or str(response.status).startswith('5):
+          if str(response.status).startswith('4') or str(response.status).startswith('5'):
               raise Exception("HTTP {0}: {1}".format(response.status, jsonData["message"]))
           elif response.status == 303:
               return self._makeRequest(method,
