@@ -42,5 +42,9 @@ class IntegrationTestDataApi < Test::Unit::TestCase
     @api.update(data.content_id, data.etag, data.json.select { |key,_| key =~ /contentData/ })
   end
 
+  def test_search
+    data = @api.search({ :q => '*:*', :fq => 'inputTemplate:standard.Article' })
+    assert_not_nil(data)
+  end
 
 end

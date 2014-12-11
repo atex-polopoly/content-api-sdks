@@ -58,6 +58,10 @@ class ContentApi
     RestClient.put(@base_url + "/content/contentid/" + content_id, json.to_s, @headers.merge({:'If-Match' => etag}))
   end
 
+  def search(params, index = 'public')
+    RestClient.get(@base_url + "/search/#{index}/select", @headers.merge({ :params => params }))
+  end
+
 
   class Content
 
