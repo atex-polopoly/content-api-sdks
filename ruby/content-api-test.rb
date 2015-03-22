@@ -12,14 +12,19 @@ class IntegrationTestDataApi < Test::Unit::TestCase
 
   def create_fixture
     article_json = <<-ARTICLE
-    {
+    { "aspects": {
       "contentData": {
-        "_type": "com.atex.standard.article.ArticleBean",
-        "title": "Hipster Ipsum",
-        "body": "Butcher mumblecore cred sriracha, four dollar toast chambray fashion axe deep v Godard direct trade selfies Pinterest. Godard quinoa drinking vinegar, fanny pack health goth biodiesel Wes Anderson deep v locavore. Hashtag sriracha hoodie synth McSweeney's scenester, fap yr jean shorts chambray beard. Meggings lomo DIY scenester Etsy, keffiyeh pop-up. Mlkshk disrupt authentic, chillwave plaid cliche wayfarers. Normcore lumbersexual iPhone, Carles art party salvia Austin mlkshk bitters Shoreditch fixie sustainable gluten-free semiotics.",
-        "lead": "Retro cardigan tousled twee, DIY cornhole before they sold out keffiyeh hoodie fap scenester pop-up Carles cray chambray."
+        "data": {
+          "_type": "com.atex.standard.article.ArticleBean",
+          "body": "\u003cp\u003eButcher mumblecore cred sriracha, four dollar toast chambray fashion axe deep v Godard direct trade selfies Pinterest. Godard quinoa drinking vinegar, fanny pack health goth biodiesel Wes Anderson deep v locavore. Hashtag sriracha hoodie synth McSweeney\u0027s scenester, fap yr jean shorts chambray beard. Meggings lomo DIY scenester Etsy, keffiyeh pop-up. Mlkshk disrupt authentic, chillwave plaid cliche wayfarers. Normcore lumbersexual iPhone, Carles art party salvia Austin mlkshk bitters Shoreditch fixie sustainable gluten-free semiotics.\u003c/p\u003e\r\n",
+          "title": "Hipster Ipsum",
+          "images": [],
+          "premiumContent": false,
+          "publishingTime": 1427032849000,
+          "lead": "Retro cardigan tousled twee, DIY cornhole before they sold out keffiyeh hoodie fap scenester pop-up Carles cray chambray."
+        }
       }
-    }
+    } }
     ARTICLE
     return @api.create(article_json)
   end
@@ -39,7 +44,7 @@ class IntegrationTestDataApi < Test::Unit::TestCase
   def test_upate_from_json
     data = @api.get @content_id
     data.aspect('contentData').title = 'made of steel'
-    @api.update(data.content_id, data.etag, data.json.select { |key,_| key =~ /contentData/ })
+    @api.update(data.content_id, data.etag, data.json.select { |key,_| key =~ /aspects/ })
   end
 
   def test_search

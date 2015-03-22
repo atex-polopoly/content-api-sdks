@@ -70,7 +70,7 @@ class ContentApi
     def etag; @raw.headers[:etag]; end
 
     def aspect(aspect)
-      Aspect.new json()[aspect]
+      Aspect.new json()['aspects'][aspect]
     end
 
     def content_id; json()['id']; end
@@ -90,15 +90,23 @@ class ContentApi
 
     def method_missing(meth, *args, &block)
       field = meth.to_s.gsub(/=$/,"")
-      unless @json[field].nil?
+      unless @json['data'][field].nil?
         if (meth.to_s.end_with? "=")
-          @json[field] = args[0]
+          @json['data'][field] = args[0]
         else
-          @json[field]
+          @json['data'][field]
         end
       else
         super
       end
+    end
+
+    def version 
+      @json['version']
+    end
+
+    def type 
+      @json['data']['_type']
     end
 
     def to_s; @json; end
