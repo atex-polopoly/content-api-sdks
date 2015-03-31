@@ -44,8 +44,9 @@ class ContentApi
     self
   end
 
-  def get(content_id)
-    raw = RestClient.get(@base_url + "/content/contentid/" + content_id, @headers)
+  def get(content_id, variant = nil)
+    variant = variant.nil? ? '' : '?variant=' + variant  
+    raw = RestClient.get(@base_url + "/content/contentid/" + content_id + variant, @headers)
     Content.new raw
   end
 
