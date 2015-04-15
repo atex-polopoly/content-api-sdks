@@ -4,6 +4,7 @@
 #
 
 require 'rest_client'
+require 'forwardable'
 require 'json'
 
 
@@ -45,7 +46,7 @@ class ContentApi
   end
 
   def get(content_id, variant = nil)
-    variant = variant.nil? ? '' : '?variant=' + variant  
+    variant = variant.nil? ? '' : '?variant=' + variant
     raw = RestClient.get(@base_url + "/content/contentid/" + content_id + variant, @headers)
     Content.new raw
   end
@@ -80,33 +81,37 @@ class ContentApi
 
     def to_s; @raw.to_s; end
 
+    def modified_at
+      time = json()['meta']['modificationTime']
+      Time.at(time.to_i/1000)
+    end
+
+    def created_at
+      time = json()['meta']['originalCreationTime']
+      Time.at(time.to_i/1000)
+    end
+
   end
 
 
   class Aspect
 
-    def initialize(json); @json=json; end
+    def initialize(json)
+       @json=json
+       @data = AspectData.new json['data']
+    end
 
     def json; @json; end
 
     def method_missing(meth, *args, &block)
-      field = meth.to_s.gsub(/=$/,"")
-      unless @json['data'][field].nil?
-        if (meth.to_s.end_with? "=")
-          @json['data'][field] = args[0]
-        else
-          @json['data'][field]
-        end
-      else
-        super
-      end
+      @data.send(meth, *args, &block)
     end
 
-    def version 
+    def version
       @json['version']
     end
 
-    def type 
+    def type
       @json['data']['_type']
     end
 
@@ -114,6 +119,40 @@ class ContentApi
 
   end
 
+  class AspectData
+    extend Forwardable
+    def_delegators :@json, :[], :size
+
+    def initialize(json); @json=json; end
+
+    def json; @json; end
+
+    def each
+      @json.each { |e| yield(AspectData.new(e)) } if block_given?
+    end
+
+    def method_missing(meth, *args, &block)
+      field = meth.to_s.gsub(/=$/,"")
+      unless @json[field].nil?
+        if (meth.to_s.end_with? "=")
+          @json[field] = args[0]
+        else
+          process @json[field]
+        end
+      else
+        nil
+      end
+    end
+
+    def to_s; @json; end
+
+    private
+    def process(node)
+      return AspectData.new(node) if (node.kind_of?(Hash) || node.kind_of?(Array))
+      node
+    end
+
+  end
 
 
 end
