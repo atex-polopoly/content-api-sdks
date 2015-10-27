@@ -3,7 +3,7 @@
 # Refer to content-api-test.rb for usage examples
 #
 
-require 'rest_client'
+require 'rest-client'
 require 'forwardable'
 require 'json'
 
@@ -56,7 +56,16 @@ class ContentApi
     return JSON.parse(response)['id']
   end
 
+  def update_aspect(content_id, aspect_name, aspect)
+    content =  get(content_id)
+    server_version = content.aspect(aspect_name).version
+    raise "conflict" unless aspect.version.eql?(server_version)
+    update(content_id, content.etag, "{ aspects: { \"" + aspect_name + "\": " + aspect.json.to_s + "}}")
+  end
+
   def update(content_id, etag, json)
+    puts json.to_s
+    puts "---"
     RestClient.put(@base_url + "/content/contentid/" + content_id, json.to_s, @headers.merge({:'If-Match' => etag}))
   end
 
