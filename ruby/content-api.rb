@@ -88,7 +88,7 @@ class ContentApi
   end
 
   def search(params, index = 'public')
-    RestClient.get(@base_url + "/search/#{index}/select", @headers.merge({ :params => params }))
+    SearchResults.new(RestClient.get(@base_url + "/search/#{index}/select", @headers.merge({ :params => params })))
   end
 
 
@@ -120,7 +120,7 @@ class ContentApi
 
   end
 
-  
+
 
   class Aspect
 
@@ -180,6 +180,28 @@ class ContentApi
       return AspectData.new(node) if (node.kind_of?(Hash) || node.kind_of?(Array))
       node
     end
+
+  end
+
+
+  class SearchResults
+    extend Forwardable
+    def_delegators :@json, :[], :size
+
+    def initialize(response)
+      @json=JSON.parse(response)
+    end
+
+    def aspects
+      return [] if @json['response']['docs'].size.eql?(0)
+      return [] if !@json['response']['docs'][0].has_key?('_data')
+      aspects = []
+      @json['response']['docs'].each do |entry|
+        aspects << ContentApi::Aspect.new(entry['_data']['aspects']['contentData'])
+      end
+      aspects
+    end
+
 
   end
 
