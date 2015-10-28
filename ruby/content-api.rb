@@ -1,8 +1,7 @@
 #
-# Client library for the Polopoly Content APi, tested compatible with Polopoly v10.12.
+# Client library for the Polopoly Content APi, tested compatible with Polopoly v10.16.
 # Refer to content-api-test.rb for usage examples
 #
-
 require 'rest-client'
 require 'forwardable'
 require 'json'
@@ -20,11 +19,17 @@ class ContentApi
     json
   end
 
+  #
+  # set the Content-API REST server URL
+  # if none set we will default to http://localhost:8080/onecms
   def base_url(base_url)
     @base_url = base_url
     self
   end
 
+  #
+  # set the user credentials for this client
+  # if none set we will default to sysadmin/sysadmin
   def user(name, pwd)
     @credentials = <<-json
     {
@@ -35,6 +40,8 @@ class ContentApi
     self
   end
 
+  #
+  # authenticate and hold authentication token in the client
   def auth
     response = RestClient.post(@base_url + "/security/token",
     @credentials,
@@ -45,27 +52,38 @@ class ContentApi
     self
   end
 
+
+  #
+  # map to the REST get mothod
+  # content_id can be versioned or unversioned
+  # variant is optional
   def get(content_id, variant = nil)
     variant = variant.nil? ? '' : '?variant=' + variant
     raw = RestClient.get(@base_url + "/content/contentid/" + content_id + variant, @headers)
     Content.new raw
   end
 
+  #
+  # create a content from a json data shuttle
   def create(json)
     response = RestClient.post(@base_url + "/content", json, @headers)
     return JSON.parse(response)['id']
   end
 
+  #
+  # update/create a single aspect on an existing content
+  # updates will abort if aspect.version and does not match latest aspect version
   def update_aspect(content_id, aspect_name, aspect)
     content =  get(content_id)
     server_version = content.aspect(aspect_name).version
-    raise "conflict" unless aspect.version.eql?(server_version)
+    raise "conflict" unless (aspect.version.eql?(server_version) || aspect.version.nil?)
     update(content_id, content.etag, "{ aspects: { \"" + aspect_name + "\": " + aspect.json.to_s + "}}")
   end
 
+  #
+  # update a content
+  # conflict resolution relies on known content ETAGS
   def update(content_id, etag, json)
-    puts json.to_s
-    puts "---"
     RestClient.put(@base_url + "/content/contentid/" + content_id, json.to_s, @headers.merge({:'If-Match' => etag}))
   end
 
@@ -88,7 +106,7 @@ class ContentApi
 
     def json; @json = JSON.parse(@raw) if @json.nil?; @json; end
 
-    def to_s; @raw.to_s; end
+    def to_s; JSON.pretty_generate(json); end
 
     def modified_at
       time = json()['meta']['modificationTime']
@@ -102,6 +120,7 @@ class ContentApi
 
   end
 
+  
 
   class Aspect
 
@@ -124,10 +143,11 @@ class ContentApi
       @json['data']['_type']
     end
 
-    def to_s; @json; end
+    def to_s; JSON.pretty_generate(@json); end
 
   end
 
+  private
   class AspectData
     extend Forwardable
     def_delegators :@json, :[], :size
