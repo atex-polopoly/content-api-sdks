@@ -1,11 +1,11 @@
-# Content API Toolkit
+# Content API SDKs
 
 ## Introduction
 
 This repository contains example code on how to use the Content API in various languages.
 
 ## Code Status
-The code in this repository is provided with the following status: **EXAMPLE**.
+The code in this repository is provided with the following status: **PROJECT**.
 
 Under the open source initiative, Atex provides source code for plugin with different levels of support. There are three different levels of support used. These are:
 
