@@ -10,6 +10,7 @@ require 'json'
 class ContentApi
 
   def initialize
+    @view=nil
     @base_url="http://localhost:8080/onecms"
     @credentials = <<-json
     {
@@ -24,6 +25,15 @@ class ContentApi
   # if none set we will default to http://localhost:8080/onecms
   def base_url(base_url)
     @base_url = base_url
+    self
+  end
+
+
+  #
+  # set the view this client will be using when accessing content
+  # setting view to nil will restore the defaults 
+  def view(view)
+    @view=view
     self
   end
 
@@ -54,12 +64,14 @@ class ContentApi
 
 
   #
-  # map to the REST get mothod
+  # map to the REST get method
+  # if this client was initialised with a view then this method will get content from that view
   # content_id can be versioned or unversioned
   # variant is optional
   def get(content_id, variant = nil)
+    view = (@view.nil?) ? '' : "views/#{@view}/" 
     variant = variant.nil? ? '' : '?variant=' + variant
-    raw = RestClient.get(@base_url + "/content/contentid/" + content_id + variant, @headers)
+    raw = RestClient.get(@base_url + "/content/#{view}contentid/" + content_id + variant, @headers)
     Content.new raw
   end
 
@@ -67,7 +79,6 @@ class ContentApi
   # create a content from a json data shuttle
   def create(json)
     response = RestClient.post(@base_url + "/content", json, @headers)
-    return JSON.parse(response)['id']
   end
 
   #
@@ -87,6 +98,13 @@ class ContentApi
     RestClient.put(@base_url + "/content/contentid/" + content_id, json.to_s, @headers.merge({:'If-Match' => etag}))
   end
 
+  def assign_to_view(view_name, content_id)
+   RestClient.put(@base_url + "/views/#{view_name}", content_id, @headers)
+  end
+
+  #
+  # search
+  # searching for a specific variant will effectively include the matching aspects in the search results  
   def search(params, index = 'public')
     SearchResults.new(RestClient.get(@base_url + "/search/#{index}/select", @headers.merge({ :params => params })))
   end
@@ -145,6 +163,16 @@ class ContentApi
 
     def to_s; JSON.pretty_generate(@json); end
 
+  end
+
+  class Util
+    def self.parseId(response)
+      return JSON.parse(response)['id']
+    end
+
+    def self.parseVersionedId(response)
+      return JSON.parse(response)['version']
+    end
   end
 
   private
