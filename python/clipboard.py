@@ -5,11 +5,11 @@ import time
 import sys
 import json
 
-class ClipboardItem:
-    def __init__(self, id, type):
-        self._id = id
-        self._type = type
-
+#class ClipboardItem:
+#    def __init__(self, id, type):
+#        self._id = id
+#        self._type = type
+#
 #    def __repr__(self):
 #        return json.dumps(self.__dict__)
 
@@ -29,18 +29,20 @@ class Clipboard:
             sys.exit(1)
 
     def copy(self, contentId):
-        content = self.readContent(contentId)
-#        print json.dumps(content["aspects"]["contentData"]["data"], indent=4)
-        item = { 'id' : 'contentid/' + contentId, 'type': content["aspects"]["contentData"]["data"]["_type"] }
-#        item = ClipboardItem(contentId, content["aspects"]["contentData"]["data"]["_type"])
-        data = [ item ]
+        content, etag = self.readContent(contentId)
+        type = content["aspects"]["contentData"]["data"]["_type"]
         
+        item = { 'id' : 'contentid/' + contentId, 'type': type }
+        data = [ item ]
+
+        clipboardId = 'atex.onecms.Clipboard-' + self._userid
+
         creationData = {
             'operations': [
                 {
                     '_type': 'com.atex.onecms.content.SetAliasOperation',
                     'namespace': 'externalId',
-                    'alias': 'atex.onecms.Clipboard-' + self._userid
+                    'alias': clipboardId
                 }
             ],
             'aspects': {
@@ -60,21 +62,31 @@ class Clipboard:
                 }
             }
         }
-        print json.dumps(creationData, indent=4)
-        result = self._contentapi.create(self._token, creationData)
+#        print json.dumps(creationData, indent=4)
+        try:
+            result = self._contentapi.create(self._token, creationData)
+            print "-- Creating clipboard: " + result
+        except Exception as e:
+            print "Failed to create clipboard " + str(e)
+            content, etag = self.readContent(clipboardId)
+            print "-- Reading clipboard: " + json.dumps(content, indent=4)
+            clipboardArray = content["aspects"]["contentData"]["data"]["content"]
+            clipboardArray.append(item)
+            print "-- Updated clipboard: " + json.dumps(content, indent=4)
+            self._contentapi.update(self._token, content, etag)
+            
 
     def readContent(self, contentId):
         try:
-            print "-- Reading content..."
             content, etag = self._contentapi.read(self._token, contentId, None)
             print "-- Successfully read content! {0}".format(content["version"])
-            return content
+            return content, etag
         except Exception, Argument:
             print "-- Failed to read content: {0}".format(Argument)
             sys.exit(1)
 
 
 client = Clipboard("localhost", 8080, "/onecms", "edmund", "edmund", "3000")
-client.copy("1.116")
+client.copy("1.146")
 
 
