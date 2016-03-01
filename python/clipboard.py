@@ -62,24 +62,25 @@ class Clipboard:
                 }
             }
         }
-#        print json.dumps(creationData, indent=4)
+
         try:
-            result = self._contentapi.create(self._token, creationData)
-            print "-- Creating clipboard: " + result
-        except Exception as e:
-            print "Failed to create clipboard " + str(e)
             content, etag = self.readContent(clipboardId)
-            print "-- Reading clipboard: " + json.dumps(content, indent=4)
-            clipboardArray = content["aspects"]["contentData"]["data"]["content"]
-            clipboardArray.append(item)
+#            print "-- Reading clipboard: " + json.dumps(content, indent=4)
+            content["aspects"]["contentData"]["data"]["content"] = [ item ]
             print "-- Updated clipboard: " + json.dumps(content, indent=4)
             self._contentapi.update(self._token, content, etag)
-            
+        except Exception as e:
+            try:
+                result = self._contentapi.create(self._token, creationData)
+#                print "-- Creating clipboard: " + result
+            except Exception as ex:
+                print "Failed to update/create clipboard " + str(ex)
+                sys.exit(1)
 
     def readContent(self, contentId):
         try:
             content, etag = self._contentapi.read(self._token, contentId, None)
-            print "-- Successfully read content! {0}".format(content["version"])
+#            print "-- Successfully read content! {0}".format(content["version"])
             return content, etag
         except Exception, Argument:
             print "-- Failed to read content: {0}".format(Argument)
