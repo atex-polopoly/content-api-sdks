@@ -5,10 +5,13 @@
 
 FORMAT=json
 
+if [[ -z $INDEX ]]; then
+  INDEX="onecms"
+fi
 
 if [[ -n $2 ]]; then
   VARIANT="&variant=$2"
 fi
 
-curl -v $CURL_PARAMS -L -H "X-Auth-Token: $TOKEN" -H "Accept: application/$FORMAT;pretty=true" "$BASE_URL/search/public/select?q=$1$VARIANT"
+curl $CURL_PARAMS -L -H "X-Auth-Token: $TOKEN" -H "Accept: application/$FORMAT;pretty=true" "$BASE_URL/search/$INDEX/select?q=$1$VARIANT"
 

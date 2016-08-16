@@ -3,7 +3,7 @@ require_relative 'content-api'
 require 'irb'
 
 @api = ContentApi.new
-@api.user('sysadmin','sysadmin').auth
+@api.user('admin','123456').auth
 
 
 ARGV.clear

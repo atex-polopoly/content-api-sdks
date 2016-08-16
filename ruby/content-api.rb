@@ -11,11 +11,11 @@ class ContentApi
 
   def initialize
     @view=nil
-    @base_url="http://localhost:8080/onecms"
+    @base_url="http://localhost:8080/ace"
     @credentials = <<-json
     {
-      "username": "sysadmin",
-      "password": "sysadmin"
+      "username": "admin",
+      "password": "123456"
     }
     json
   end
@@ -31,7 +31,7 @@ class ContentApi
 
   #
   # set the view this client will be using when accessing content
-  # setting view to nil will restore the defaults 
+  # setting view to nil will restore the defaults
   def view(view)
     @view=view
     self
@@ -69,9 +69,10 @@ class ContentApi
   # content_id can be versioned or unversioned
   # variant is optional
   def get(content_id, variant = nil)
-    view = (@view.nil?) ? '' : "views/#{@view}/" 
+    content_id = Id.new(content_id) if content_id.is_a? String
+    view = (@view.nil?) ? '' : "views/#{@view}/"
     variant = variant.nil? ? '' : '?variant=' + variant
-    raw = RestClient.get(@base_url + "/content/#{view}contentid/" + content_id + variant, @headers)
+    raw = RestClient.get(@base_url + "/content/" + view + content_id.to_url_string + variant, @headers)
     Content.new raw
   end
 
@@ -104,11 +105,39 @@ class ContentApi
 
   #
   # search
-  # searching for a specific variant will effectively include the matching aspects in the search results  
-  def search(params, index = 'public')
+  # searching for a specific variant will effectively include the matching aspects in the search results
+  def search(params, index = 'onecms')
     SearchResults.new(RestClient.get(@base_url + "/search/#{index}/select", @headers.merge({ :params => params })))
   end
 
+
+  class Id
+
+    def initialize(string_identifier)
+      @id = string_identifier
+      @namespace = nil
+    end
+
+    def namespace(namespace)
+      @namespace = namespace
+      self
+    end
+
+    def to_url_string
+      'contentid/' + (@namespace.nil? ? '' : "#{@namespace}/") + @id
+    end
+
+  end
+
+
+  class Alias < Id
+
+    def to_url_string
+      'externalid/' + (@namespace.nil? ? '' : "#{@namespace}/") + @id
+      '/' + @id
+    end
+
+  end
 
   class Content
 
