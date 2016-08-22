@@ -1,10 +1,13 @@
-#
+
 # Client library for the Polopoly Content APi, tested compatible with Polopoly v10.16.
 # Refer to content-api-test.rb for usage examples
 #
 require 'rest-client'
 require 'forwardable'
 require 'json'
+
+
+# RestClient.log = 'stdout'
 
 
 class ContentApi
@@ -107,7 +110,8 @@ class ContentApi
   # search
   # searching for a specific variant will effectively include the matching aspects in the search results
   def search(params, index = 'onecms')
-    SearchResults.new(RestClient.get(@base_url + "/search/#{index}/select", @headers.merge({ :params => params })))
+    response = RestClient.get(@base_url + "/search/#{index}/select", @headers.merge({ :params => params }))
+    SearchResults.new(response)
   end
 
 
@@ -115,13 +119,8 @@ class ContentApi
 
     def initialize(string_identifier)
       @id = string_identifier
-      @namespace = nil
     end
 
-    def namespace(namespace)
-      @namespace = namespace
-      self
-    end
 
     def to_url_string
       'contentid/' + (@namespace.nil? ? '' : "#{@namespace}/") + @id
@@ -134,7 +133,11 @@ class ContentApi
 
     def to_url_string
       'externalid/' + (@namespace.nil? ? '' : "#{@namespace}/") + @id
-      '/' + @id
+    end
+
+    def namespace(namespace)
+      @namespace = namespace
+      self
     end
 
   end
@@ -249,16 +252,25 @@ class ContentApi
       @json=JSON.parse(response)
     end
 
-    def aspects
+    def entries
       return [] if @json['response']['docs'].size.eql?(0)
       return [] if !@json['response']['docs'][0].has_key?('_data')
-      aspects = []
+      entries = []
       @json['response']['docs'].each do |entry|
-        aspects << ContentApi::Aspect.new(entry['_data']['aspects']['contentData'])
+        entries << ContentApi::SearchResult.new(entry['id'], Aspect.new(entry['_data']['aspects']['contentData']))
       end
-      aspects
+      entries
     end
 
+  end
+
+  class SearchResult
+    attr_accessor :id, :data
+
+    def initialize(id, data)
+      @id=id
+      @data=data
+    end
 
   end
 
