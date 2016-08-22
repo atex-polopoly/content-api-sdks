@@ -158,6 +158,17 @@ class ContentApi
       json()['aspects'].collect{ |k,v| k }
     end
 
+
+    def method_missing(meth, *args, &block)
+      aspect_name = meth.to_s.gsub(/=$/,"")
+      unless json()['aspects'][aspect_name].nil?
+        Aspect.new json()['aspects'][aspect_name]
+      else
+        raise ArgumentError.new("Aspect `#{aspect_name}` doesn't exist.")
+      end
+    end
+
+
     def aspect(aspect)
       Aspect.new json()['aspects'][aspect]
     end
