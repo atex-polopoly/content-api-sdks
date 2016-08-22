@@ -79,6 +79,12 @@ class ContentApi
     Content.new raw
   end
 
+  def get_info(content_id) 
+    content_id = Id.new(content_id) if content_id.is_a? String
+    raw = RestClient.get(@base_url + "/contentinfo/"  + content_id.to_url_string, @headers)
+    Content.new raw
+  end
+  
   #
   # create a content from a json data shuttle
   def create(json)
@@ -148,11 +154,15 @@ class ContentApi
 
     def etag; @raw.headers[:etag]; end
 
+    def aspects
+      json()['aspects'].collect{ |k,v| k }
+    end
+
     def aspect(aspect)
       Aspect.new json()['aspects'][aspect]
     end
 
-    def content_id; json()['id']; end
+    def id; json()['id']; end
 
     def json; @json = JSON.parse(@raw) if @json.nil?; @json; end
 

@@ -38,7 +38,7 @@ class IntegrationTestDataApi < Test::Unit::TestCase
     data = @api.get @content_id
     assert_not_nil(data)
     assert_not_nil(data.etag)
-    assert_equal(data.content_id, @content_id)
+    assert_equal(data.id, @content_id)
   end
 
   def test_get_aspect
@@ -50,7 +50,7 @@ class IntegrationTestDataApi < Test::Unit::TestCase
   def test_upate_from_json
     data = @api.get @content_id
     data.aspect('contentData').title = 'made of steel'
-    @api.update(data.content_id, data.etag, data.json.select { |key,_| key =~ /aspects/ })
+    @api.update(data.id, data.etag, data.json.select { |key,_| key =~ /aspects/ })
   end
 
   def test_search
