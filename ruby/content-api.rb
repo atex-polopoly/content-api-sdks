@@ -79,12 +79,12 @@ class ContentApi
     Content.new raw
   end
 
-  def get_info(content_id) 
+  def get_info(content_id)
     content_id = Id.new(content_id) if content_id.is_a? String
     raw = RestClient.get(@base_url + "/contentinfo/"  + content_id.to_url_string, @headers)
     Content.new raw
   end
-  
+
   #
   # create a content from a json data shuttle
   def create(json)
@@ -138,7 +138,7 @@ class ContentApi
   class Alias < Id
 
     def to_url_string
-      'externalid/' + (@namespace.nil? ? '' : "#{@namespace}/") + @id
+      (@namespace.nil? ? '' : "#{@namespace}/") + @id
     end
 
     def namespace(namespace)
@@ -150,9 +150,13 @@ class ContentApi
 
   class Content
 
-    def initialize(data); @raw=data; end
+    def initialize(data = '{ "aspects": {} }')
+      @raw=data
+    end
 
-    def etag; @raw.headers[:etag]; end
+    def etag
+      @raw.headers[:etag] if @raw.is_a?(RestClient::Response)
+    end
 
     def aspects
       json()['aspects'].collect{ |k,v| k }
@@ -169,24 +173,37 @@ class ContentApi
     end
 
 
-    def aspect(aspect)
-      Aspect.new json()['aspects'][aspect]
+    def aspect(aspect_name)
+      Aspect.new json()['aspects'][aspect_name]
     end
+
+    def add_aspect(aspect_name, type)
+      json()['aspects'][aspect_name] = "{ 'data': { '_type': '#{type}' } }"
+      aspect(aspect_name)
+    end
+
 
     def id; json()['id']; end
 
-    def json; @json = JSON.parse(@raw) if @json.nil?; @json; end
+    def json
+      @json = JSON.parse(@raw) if @json.nil?
+      @json
+    end
 
     def to_s; JSON.pretty_generate(json); end
 
     def modified_at
-      time = json()['meta']['modificationTime']
-      Time.at(time.to_i/1000)
+      if json().has_key?('meta')
+        time = json()['meta']['modificationTime']
+        Time.at(time.to_i/1000)
+      end
     end
 
     def created_at
-      time = json()['meta']['originalCreationTime']
-      Time.at(time.to_i/1000)
+      if json().has_key?('meta')
+        time = json()['meta']['originalCreationTime']
+        Time.at(time.to_i/1000)
+      end
     end
 
   end
@@ -243,15 +260,15 @@ class ContentApi
 
     def method_missing(meth, *args, &block)
       field = meth.to_s.gsub(/=$/,"")
-      unless @json[field].nil?
+
         if (meth.to_s.end_with? "=")
+          puts "field"
+          puts @json
           @json[field] = args[0]
         else
           process @json[field]
         end
-      else
-        nil
-      end
+      
     end
 
     def to_s; @json; end
