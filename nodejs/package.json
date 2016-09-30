@@ -1,6 +1,6 @@
 {
   "name": "data-api-toolkit",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A toolkit for dealing with the Data API",
   "repository": {
     "type": "git",
@@ -11,8 +11,8 @@
     "url": "http://support.polopoly.com/"
   },
   "dependencies": {
-    "underscore": "~1.6.0",
-    "q": "1.0.0",
-    "wikipedia-js": "0.0.6"
+    "minimist": "^1.2.0",
+    "node-fetch": "~1.6.1",
+    "prompt": "^1.0.0"
   }
 }
